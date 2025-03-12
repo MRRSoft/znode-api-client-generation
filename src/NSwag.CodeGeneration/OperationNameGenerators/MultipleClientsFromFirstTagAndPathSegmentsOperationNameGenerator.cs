@@ -70,6 +70,7 @@ namespace NSwag.CodeGeneration.OperationNameGenerators
             }
             else
             {
+                //sample test
                 if (document.ClientSuffix != "multifront")
                 {
                     isDuplicate = CheckForDuplicatePaths(path, document);
