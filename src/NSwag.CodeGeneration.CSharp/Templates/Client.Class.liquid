@@ -313,10 +313,17 @@ throw new {{ ExceptionClass }}(status.ErrorCode, status.ErrorMessage, status.Sta
 {%     endif -%}
 
 }
+catch ({{ ExceptionClass }} ex)
+  {
+      throw new {{ ExceptionClass }}((int)HttpStatusCode.InternalServerError, ex.ToString());
+  }
 finally
 {
 if (disposeResponse_)
-response_.Dispose();
+{
+ if (response_ != null)
+    response_.Dispose();
+}
 }
 }
 {% endfor %}
