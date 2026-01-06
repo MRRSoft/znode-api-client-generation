@@ -20,9 +20,9 @@ private System.Lazy<{{ JsonSerializerSettingsType }}> _settings;
 {% if HasConfigurationClass -%}
 public {{ Class }}({{ ConfigurationClass }} configuration{% if InjectHttpClient %}, {{ HttpClientType }} httpClient{% endif %}) : base(configuration)
 {
-{%     if InjectHttpClient -%}
+{%      if InjectHttpClient -%}
 _httpClient = httpClient;
-{%     endif -%}
+{%      endif -%}
 {% elsif UseBaseUrl and HasBaseUrl == false %}
 public {{ Class }}(string baseUrl{% if InjectHttpClient %}, {{ HttpClientType }} httpClient{% endif %})
 {
@@ -239,9 +239,26 @@ foreach (var item_ in response_.Content.Headers)
 headers_[item_.Key] = item_.Value;
 }
 var status_ = (int)response_.StatusCode;
+
 if (status_ == 401 && headers_.ContainsKey("Is-JWT-Authorization") && (headers_["Is-JWT-Authorization"].FirstOrDefault()).ToString() == "true")
 {
-  throw new ZnodeException(status.ErrorCode, status.ErrorMessage, status.StatusCode);
+    var contentString = await response_.Content.ReadAsStringAsync().ConfigureAwait(false);
+    ZnodeErrorDetail errorDetail = null;
+    ValidationErrorModel validationModel = null;
+
+    if (!string.IsNullOrWhiteSpace(contentString))
+    {
+        var jObject = Newtonsoft.Json.Linq.JObject.Parse(contentString);
+        if (jObject["CustomModelState"] != null)
+        {
+            validationModel = jObject.ToObject<ValidationErrorModel>();
+        }
+        else if (jObject["ErrorMessage"] != null)
+        {
+            errorDetail = jObject.ToObject<ZnodeErrorDetail>();
+        }
+    }
+    throw new ZnodeException(status.ErrorCode, status.ErrorMessage, status.StatusCode, null, errorDetail, validationModel);
 }
 {%     for response in operation.Responses -%}
 {%     if response.StatusCode ==  '204' -%}
@@ -305,10 +322,29 @@ return;
 else
 {%         endif -%}
 {
-string responseData_ = response_.Content == null ? null : await response_.Content.ReadAsStringAsync().ConfigureAwait(false);
-{{ operation.SyncResultType }} typedBody = Newtonsoft.Json.JsonConvert.DeserializeObject<{{ operation.SyncResultType }}>(responseData_, JsonSerializerSettings);
-UpdateApiStatus(typedBody, status, response_);
-throw new {{ ExceptionClass }}(status.ErrorCode, status.ErrorMessage, status.StatusCode);
+    var contentString = await response_.Content.ReadAsStringAsync().ConfigureAwait(false);
+    
+    {{ operation.SyncResultType }} typedBody = string.IsNullOrWhiteSpace(contentString) ? null : Newtonsoft.Json.JsonConvert.DeserializeObject<{{ operation.SyncResultType }}>(contentString, JsonSerializerSettings);
+    UpdateApiStatus(typedBody, status, response_);
+
+    ZnodeErrorDetail errorDetail = null;
+    ValidationErrorModel validationModel = null;
+
+    if (!string.IsNullOrWhiteSpace(contentString))
+    {
+        var jObject = Newtonsoft.Json.Linq.JObject.Parse(contentString);
+
+        if (jObject["CustomModelState"] != null)
+        {
+            validationModel = jObject.ToObject<ValidationErrorModel>();
+        }
+        else if (jObject["ErrorMessage"] != null)
+        {
+            errorDetail = jObject.ToObject<ZnodeErrorDetail>();
+        }
+    }
+
+    throw new {{ ExceptionClass }}(status.ErrorCode, status.ErrorMessage, status.StatusCode, null, errorDetail, validationModel);
 }
 {%     endif -%}
 

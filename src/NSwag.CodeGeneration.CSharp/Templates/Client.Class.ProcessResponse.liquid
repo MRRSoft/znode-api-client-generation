@@ -6,8 +6,24 @@ var fileResponse_ = new FileResponse(status_, headers_, responseStream_, {% if I
  disposeResponse_ = false; // response and client are disposed by FileResponse
 return fileResponse_;
 {%         else -%}
-var objectResponse_ = await ReadObjectResponseAsync<{{ response.Type }}>(response_, headers_, cancellationToken).ConfigureAwait(false);
-  throw new {{ ExceptionClass }}(objectResponse_.Object.ErrorCode, objectResponse_.Object.ErrorMessage, objectResponse_.Object.StatusCode);
+{% comment %} Failure for File Response {% endcomment %}
+var contentString = await response_.Content.ReadAsStringAsync().ConfigureAwait(false);
+ZnodeErrorDetail errorDetail = null;
+ValidationErrorModel validationModel = null;
+
+if (!string.IsNullOrWhiteSpace(contentString))
+{
+    var jObject = Newtonsoft.Json.Linq.JObject.Parse(contentString);
+    if (jObject["CustomModelState"] != null)
+    {
+        validationModel = jObject.ToObject<ValidationErrorModel>();
+    }
+    else if (jObject["ErrorMessage"] != null)
+    {
+        errorDetail = jObject.ToObject<ZnodeErrorDetail>();
+    }
+}
+throw new {{ ExceptionClass }}(errorDetail?.ErrorCode ?? 0, errorDetail?.ErrorMessage, errorDetail.StatusCode, null, errorDetail, validationModel);
 {%         endif -%}
 {%     elsif response.IsPlainText -%}
 var responseData_ = response_.Content == null ? null : await response_.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -19,10 +35,25 @@ return new {{ ResponseClass }}<{{ operation.UnwrappedResultType }}>(status_, hea
 return result_;
 {%             endif -%}
 {%         else -%}
-  throw new {{ ExceptionClass }}(objectResponse_.Object.ErrorCode, objectResponse_.Object.ErrorMessage, objectResponse_.Object.StatusCode);
+  throw new {{ ExceptionClass }}(errorDetail?.ErrorCode ?? 0, errorDetail?.ErrorMessage, errorDetail.StatusCode, null, errorDetail, validationModel);
 {%         endif -%}
 {%     else -%}
-var objectResponse_ = await ReadObjectResponseAsync<{{ response.Type }}>(response_, headers_, cancellationToken).ConfigureAwait(false);
+var contentString = await response_.Content.ReadAsStringAsync().ConfigureAwait(false);
+ZnodeErrorDetail errorDetail = null;
+ValidationErrorModel validationModel = null;
+
+if (!string.IsNullOrWhiteSpace(contentString))
+{
+    var jObject = Newtonsoft.Json.Linq.JObject.Parse(contentString);
+    if (jObject["CustomModelState"] != null)
+    {
+        validationModel = jObject.ToObject<ValidationErrorModel>();
+    }
+    else if (jObject["ErrorMessage"] != null)
+    {
+        errorDetail = jObject.ToObject<ZnodeErrorDetail>();
+    }
+}
 {%     if response.StatusCode !=  '200' -%}
 {%         if response.IsNullable == false -%}
 
@@ -30,24 +61,25 @@ var objectResponse_ = await ReadObjectResponseAsync<{{ response.Type }}>(respons
 {%         endif -%}
 {%         if response.IsSuccess -%}
 {%             if operation.WrapResponse -%}
-return new {{ ResponseClass }}<{{ operation.UnwrappedResultType }}>(status_, headers_, objectResponse_.Object);
+return new {{ ResponseClass }}<{{ operation.UnwrappedResultType }}>(status_, headers_, errorDetail);
 {%             else -%}
-return objectResponse_.Object;
+return errorDetail;
 {%             endif -%}
 {%         endif -%}
 {%         if response.IsSuccess == false -%}
 {%             if response.InheritsExceptionSchema -%}
-var responseObject_ = objectResponse_.Object != null ? objectResponse_.Object : new {{ response.Type }}();
+var responseObject_ = errorDetail != null ? errorDetail : new {{ response.Type }}();
 responseObject_.Data.Add("HttpStatus", status_.ToString());
 responseObject_.Data.Add("HttpHeaders", headers_);
-responseObject_.Data.Add("HttpResponse", objectResponse_.Text);
+responseObject_.Data.Add("HttpResponse", errorDetail.Text);
 {%                 if WrapDtoExceptions -%}
-  throw new {{ ExceptionClass }}(objectResponse_.Object.ErrorCode, objectResponse_.Object.ErrorMessage, objectResponse_.Object.StatusCode);
+    throw new {{ ExceptionClass }}(errorDetail?.ErrorCode ?? 0, errorDetail?.ErrorMessage, errorDetail.StatusCode, null, errorDetail, validationModel);
 {%                 else -%}
 throw responseObject_;
 {%                 endif -%}
 {%             else -%}
-     throw new {{ ExceptionClass }}(objectResponse_.Object.ErrorCode, objectResponse_.Object.ErrorMessage);
+    throw new {{ ExceptionClass }}(errorDetail?.ErrorCode ?? 0, errorDetail?.ErrorMessage, errorDetail.StatusCode, null, errorDetail, validationModel);
+
 {%             endif -%}
 {%         endif -%}
 {%     endif -%}
