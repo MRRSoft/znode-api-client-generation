@@ -108,9 +108,9 @@ namespace NSwag.CodeGeneration.CSharp
         {
             _settings.CSharpGeneratorSettings.DateTimeType = "System.DateTime";
             _settings.CSharpGeneratorSettings.DateType = "System.DateTime";
-            //_settings.CSharpGeneratorSettings.ExcludedTypeNames = new string[] { "FilterTuple", "JToken"};
-            if(isClientGeneration)
-                _settings.CSharpGeneratorSettings.ExcludedTypeNames = new string[] { "FileResponse", "FileParameter" };
+            ////_settings.CSharpGeneratorSettings.ExcludedTypeNames = new string[] { "FilterTuple", "JToken"};
+            //if(isClientGeneration)
+            _settings.CSharpGeneratorSettings.ExcludedTypeNames = new string[] { "FileResponse", "FileParameter", "ZnodeErrorDetail" };
             _settings.AdditionalNamespaceUsages = _settings.AdditionalNamespaceUsages.Where(ns => !ns.ToLower().Contains("model")).ToArray();
 
             var generator = new CSharpGenerator(_document, _settings.CSharpGeneratorSettings, _resolver);
