@@ -242,7 +242,8 @@ var status_ = (int)response_.StatusCode;
 if (status_ == 401 && headers_.ContainsKey("Is-JWT-Authorization") && (headers_["Is-JWT-Authorization"].FirstOrDefault()).ToString() == "true")
 {
     var objectResponse_ = await ReadObjectResponseAsync<ZnodeErrorDetail>(response_, headers_, cancellationToken).ConfigureAwait(false);
-
+    objectResponse_.Object.ApiStatusCode = response_.StatusCode;
+    objectResponse_.Object.Reason = reason_;
   throw new ZnodeException(objectResponse_.Object);
 }
 {%     for response in operation.Responses -%}
@@ -311,7 +312,8 @@ string responseData_ = response_.Content == null ? null : await response_.Conten
 {{ operation.SyncResultType }} typedBody = Newtonsoft.Json.JsonConvert.DeserializeObject<{{ operation.SyncResultType }}>(responseData_, JsonSerializerSettings);
 UpdateApiStatus(typedBody, status, response_);
     var objectResponse_ = await ReadObjectResponseAsync<ZnodeErrorDetail>(response_, headers_, cancellationToken).ConfigureAwait(false);
-
+    objectResponse_.Object.ApiStatusCode = response_.StatusCode;
+    objectResponse_.Object.Reason = reason_;
   throw new ZnodeException(objectResponse_.Object);}
 {%     endif -%}
 
@@ -364,6 +366,8 @@ public class ZnodeErrorDetail
     public string? ErrorMessage { get; set; }
     public bool HasError { get; set; }
     public System.Net.HttpStatusCode StatusCode { get; set; }
+    public System.Net.HttpStatusCode ApiStatusCode { get; set; }
+    public string Reason { get; set; }
     public System.Collections.Generic.Dictionary<string, string> CustomModelState { get; set; } = new System.Collections.Generic.Dictionary<string, string>();
 }
 }
