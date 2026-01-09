@@ -308,7 +308,11 @@ else
 string responseData_ = response_.Content == null ? null : await response_.Content.ReadAsStringAsync().ConfigureAwait(false);
 {{ operation.SyncResultType }} typedBody = Newtonsoft.Json.JsonConvert.DeserializeObject<{{ operation.SyncResultType }}>(responseData_, JsonSerializerSettings);
 UpdateApiStatus(typedBody, status, response_);
-throw new {{ ExceptionClass }}(status.ErrorCode, status.ErrorMessage, status.StatusCode);
+var objectResponse_ = await ReadObjectResponseAsync<{{ response.Type }}>(response_, headers_, cancellationToken).ConfigureAwait(false);
+
+                objectResponse_.Object.ApiStatusCode = response_.StatusCode;
+        objectResponse_.Object.Reason = reason_;
+      throw new ZnodeException(objectResponse_.Object);
 }
 {%     endif -%}
 
