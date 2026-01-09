@@ -355,21 +355,6 @@ public partial class ZnodeException : System.Exception
     {
         ErrorDetail = details;
     }
-
-    // Shortcut properties to keep your code clean
-    public int? ErrorCode => ErrorDetail?.ErrorCode;
-    public System.Net.HttpStatusCode StatusCode => ErrorDetail?.StatusCode ?? System.Net.HttpStatusCode.InternalServerError;
-    public bool HasError => ErrorDetail?.HasError ?? false;
 }
 
-public class ZnodeErrorDetail 
-{
-    public int? ErrorCode { get; set; }
-    public string? ErrorMessage { get; set; }
-    public bool HasError { get; set; }
-    public System.Net.HttpStatusCode StatusCode { get; set; }
-    public System.Net.HttpStatusCode ApiStatusCode { get; set; }
-    public string Reason { get; set; }
-    public System.Collections.Generic.Dictionary<string, string> CustomModelState { get; set; } = new System.Collections.Generic.Dictionary<string, string>();
-}
 }
