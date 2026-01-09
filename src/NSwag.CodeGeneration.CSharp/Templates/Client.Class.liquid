@@ -239,6 +239,8 @@ foreach (var item_ in response_.Content.Headers)
 headers_[item_.Key] = item_.Value;
 }
 var status_ = (int)response_.StatusCode;
+ var reason_ = response_.ReasonPhrase;
+
 if (status_ == 401 && headers_.ContainsKey("Is-JWT-Authorization") && (headers_["Is-JWT-Authorization"].FirstOrDefault()).ToString() == "true")
 {
     var objectResponse_ = await ReadObjectResponseAsync<ZnodeErrorDetail>(response_, headers_, cancellationToken).ConfigureAwait(false);
