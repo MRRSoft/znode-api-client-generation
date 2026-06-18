@@ -307,6 +307,27 @@ return new {{ ResponseClass }}(status_, headers_);
 return;
 {%             endif -%}
 }
+else if (status_ >= 200 && status_ < 300)
+{
+{%             if operation.SyncResultType == 'FileResponse' -%}
+var responseStream_ = response_.Content == null ? System.IO.Stream.Null : await response_.Content.ReadAsStreamAsync().ConfigureAwait(false);
+var fileResponse_ = new FileResponse(status_, headers_, responseStream_, {% if InjectHttpClient or DisposeHttpClient == false %}null{% else %}client_{% endif %}, response_);
+disposeResponse_ = false;
+return fileResponse_;
+{%             elsif operation.HasResultType -%}
+{%                 if operation.WrapResponse -%}
+var objectResponse_ = await ReadObjectResponseAsync<{{ operation.UnwrappedResultType }}>(response_, headers_, cancellationToken).ConfigureAwait(false);
+return new {{ ResponseClass }}<{{ operation.UnwrappedResultType }}>(status_, headers_, objectResponse_.Object);
+{%                 else -%}
+var objectResponse_ = await ReadObjectResponseAsync<{{ operation.SyncResultType }}>(response_, headers_, cancellationToken).ConfigureAwait(false);
+return objectResponse_.Object;
+{%                 endif -%}
+{%             elsif operation.WrapResponse -%}
+return new {{ ResponseClass }}(status_, headers_);
+{%             else -%}
+return;
+{%             endif -%}
+}
 else
 {%         endif -%}
 {
